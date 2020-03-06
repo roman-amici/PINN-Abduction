@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.opt import ScipyOptimizerInterface
-from typing import List
+from typing import List,
+from collections import namedtuple
 
 class PINN:
 
@@ -21,10 +22,9 @@ class PINN:
         self.graph = tf.Graph()
 
         with self.graph.as_default():
-            self.weights,self.biases = self.__init_NN(self.layers)
-            
-            self.X = tf.placeholder(tf.float32, shape=[None,self.layers[0]])
-            self.U = tf.placeholder(tf.float32, shape=[None,self.layers[-1]])
+            self._init_variables()
+
+            self._init_placeholders()
 
             self.U_hat = self.__NN(self.X)
             self.loss_U = self._get_loss(self.U,self.U_hat)
@@ -48,6 +48,13 @@ class PINN:
             config=tf.ConfigProto(allow_soft_placement=True))
 
         self.sess.run(init)
+
+    def _init_variables(self):
+        self.weights,self.biases = self.__init_NN(self.layers)
+
+    def _init_placeholders(self):
+        self.X = tf.placeholder(tf.float32, shape=[None,self.layers[0]])
+        self.U = tf.placeholder(tf.float32, shape=[None,self.layers[-1]])
 
     def _get_loss(self,U,U_hat):
         return tf.reduce_mean( tf.square( U-U_hat ) )
@@ -92,3 +99,38 @@ class PINN:
     def train_BFGS(self,X,U):
         self.optimizer_BFGS.minimize(self.sess, {self.X : X, self.U : U})
 
+    def predict(self,X):
+        return self.sess.run(self.U, {self.X : X})
+
+c
+
+class ScalarDifferentialTerm:
+
+    def __init__(self, 
+        u_order : int, 
+        du_order : int,
+        du_component : int):
+
+        self.u_order = u_order
+        self.du_order = du_order
+        self.du_component = du_component
+        
+class Scalar_PDE(PINN):
+
+    def __init__(
+        self,
+        differential_terms : List[ScalarDifferentialTerm],
+        layers : List[int],
+        lower_bound : np.array,
+        upper_bound : np.array,
+        regularization_param=1):
+
+        self.differential_terms = differential_terms
+
+        super().__init__(layers,lower_bound,upper_bound,regularization_param)
+
+    def __get_partial_derivatives(self,max_order,U,X):
+
+        u = None
+        for d in range(max_order):
+            pass
