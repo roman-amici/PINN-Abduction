@@ -27,7 +27,7 @@ def to_grid_scalar(X,U,n_0,n_1):
 
     return u_grid,grid_0,grid_1
 
-def load_burgers(path="../data/mat-data/burgers_shock.mat"):
+def load_burgers(path="data/mat-data/burgers_shock.mat"):
 
     data = loadmat(path)
 
@@ -51,7 +51,7 @@ def flatten_burgers(t,x,u):
 
   return X,U
 
-def load_kdv(path="../data/mat-data/KdV.mat"):
+def load_kdv(path="data/mat-data/KdV.mat"):
     data = loadmat(path)
 
     t = data['tt']
@@ -75,3 +75,13 @@ def flatten_kdv(t,x,u):
             U[idx,0] = u[x_i,t_i]
 
     return X,U
+
+def subset_data(X,U,n):
+    idx = np.random.choice(X.shape[0], n, replace=False)
+    X_sub = X[idx,:]
+    U_sub = U[idx,:]
+
+    return X_sub,U_sub
+
+def rmse(U,U_hat):
+    return np.sqrt(np.mean( (U_hat[:,0] - U[:,0])**2))

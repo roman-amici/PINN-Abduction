@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.opt import ScipyOptimizerInterface
-from typing import List,
+from typing import List
 from collections import namedtuple
 
 class PINN:
@@ -11,12 +11,16 @@ class PINN:
         layers : List[int],
         lower_bound : np.array,
         upper_bound : np.array,
+        dtype=tf.float32,
         regularization_param=1):
 
         self.layers = layers
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.dtype = dtype
         self.regularization_param = regularization_param
+
+        self._build_net()
 
     def _build_net(self):
         self.graph = tf.Graph()
@@ -30,7 +34,7 @@ class PINN:
             self.loss_U = self._get_loss(self.U,self.U_hat)
             self.loss_dU = self._get_loss_du()
 
-            self.loss = self.loss_U + self.loss_dU
+            self.loss = self.loss_U + self.regularization_param * self.loss_dU
 
             self.optimizer_BFGS = ScipyOptimizerInterface(
                 self.loss,
@@ -39,7 +43,8 @@ class PINN:
                             'maxfun': 50000,
                             'maxcor': 50,
                             'maxls': 50,
-                            'ftol' : 1.0 * np.finfo(float).eps})
+                            'ftol' : 1.0 * np.finfo(float).eps,
+                            'gtol' : 1.0 * np.finfo(float).eps})
             
             init = tf.global_variables_initializer()
 
@@ -53,11 +58,11 @@ class PINN:
         self.weights,self.biases = self.__init_NN(self.layers)
 
     def _init_placeholders(self):
-        self.X = tf.placeholder(tf.float32, shape=[None,self.layers[0]])
-        self.U = tf.placeholder(tf.float32, shape=[None,self.layers[-1]])
+        self.X = tf.placeholder(self.dtype, shape=[None,self.layers[0]])
+        self.U = tf.placeholder(self.dtype, shape=[None,self.layers[-1]])
 
     def _get_loss(self,U,U_hat):
-        return tf.reduce_mean( tf.square( U-U_hat ) )
+        return tf.reduce_mean( tf.square( U - U_hat ) )
 
     def _get_loss_du(self):
         return 0.0
@@ -68,7 +73,7 @@ class PINN:
         num_layers = len(layers) 
         for l in range(0,num_layers-1):
             W = self.__xavier_init(size=[layers[l], layers[l+1]])
-            b = tf.Variable(tf.zeros([1,layers[l+1]], dtype=tf.float32), dtype=tf.float32)
+            b = tf.Variable(tf.zeros([1,layers[l+1]], dtype=self.dtype), dtype=self.dtype)
             weights.append(W)
             biases.append(b)        
         return weights, biases
@@ -80,7 +85,7 @@ class PINN:
 
         return tf.Variable(tf.truncated_normal(
             [in_dim, out_dim], 
-            stddev=xavier_stddev), dtype=tf.float32)
+            stddev=xavier_stddev), dtype=self.dtype)
 
     def __NN(self,X):
         Z = 2.0*(X - self.lower_bound)/(self.upper_bound - self.lower_bound) - 1.0
@@ -100,9 +105,7 @@ class PINN:
         self.optimizer_BFGS.minimize(self.sess, {self.X : X, self.U : U})
 
     def predict(self,X):
-        return self.sess.run(self.U, {self.X : X})
-
-c
+        return self.sess.run(self.U_hat, {self.X : X})
 
 class ScalarDifferentialTerm:
 
@@ -114,6 +117,59 @@ class ScalarDifferentialTerm:
         self.u_order = u_order
         self.du_order = du_order
         self.du_component = du_component
+
+        if du_order == 0 and du_component != 0:
+            raise Exception("Invalid value du_component when u_order is du_order is 0")
+
+    def __repr__(self):
+
+        convention = ["x", "t"]
+
+        if self.u_order == 0:
+            u_str = ""
+        elif self.u_order > 1:
+            u_str = f"u^{self.u_order}"
+        else:
+            u_str = "u"
+
+        if self.du_order == 0:
+            du_str = ""
+        else:
+            du_str = "u_"
+            for _ in range(self.du_order):
+                du_str += convention[self.du_component]
+
+        return u_str + " " + du_str
+
+    @staticmethod
+    def get_combinations_scalar(
+        n_components : int,
+        max_u_order : int,
+        max_du_order : int) -> List:
+        
+        combinations = []
+        for du_order in range(max_du_order):
+            for u_order in range(max_u_order):
+                if du_order == 0: #No order for just u**n since its a scalar
+                    combinations.append(ScalarDifferentialTerm(u_order,du_order,0))
+                else:
+                    for component in range(n_components):
+                        combinations.append(ScalarDifferentialTerm(u_order,du_order,component))
+
+        return combinations
+
+    @staticmethod
+    def get_linear_combinations_scalar(
+        n_components : int,
+        max_du_order : int) -> List:
+
+        combinations = [ScalarDifferentialTerm(0,1,0)]
+        for du_order in range(1,max_du_order):
+            for du_component in range(n_components):
+                combinations.append(ScalarDifferentialTerm(0,du_order,du_component))
+
+        return combinations
+
         
 class Scalar_PDE(PINN):
 
@@ -123,14 +179,78 @@ class Scalar_PDE(PINN):
         layers : List[int],
         lower_bound : np.array,
         upper_bound : np.array,
+        dtype = tf.float32,
         regularization_param=1):
 
         self.differential_terms = differential_terms
 
-        super().__init__(layers,lower_bound,upper_bound,regularization_param)
+        self.max_differential_order = 0
+        for term in differential_terms:
+            self.max_differential_order = max(self.max_differential_order, term.du_order)
 
-    def __get_partial_derivatives(self,max_order,U,X):
+        super().__init__(layers,lower_bound,upper_bound,dtype,regularization_param)
 
-        u = None
-        for d in range(max_order):
-            pass
+    def _init_variables(self):
+        super()._init_variables()
+    
+        self.differential_params = []
+        # By convention, we leave the first param off
+        for _ in range(len(self.differential_terms)-1): 
+            param = tf.Variable(tf.random.normal( [1] ), dtype=self.dtype)
+            self.differential_params.append(param)
+
+    def _get_loss_du(self):
+
+        partials = self.__get_partial_derivatives(
+            self.max_differential_order, self.U_hat, self.X)
+
+        loss = 0.0
+        for i,term in enumerate(self.differential_terms):
+            if i == 0:
+                param = 1.0
+            else:
+                param = self.differential_params[i-1]
+
+            tensor = self.__term_to_tensor(
+                term, 
+                param, 
+                self.U_hat, 
+                partials)
+            loss += tensor
+
+        return tf.reduce_mean( tf.square(loss))
+
+    def __term_to_tensor(self,
+        term : ScalarDifferentialTerm,
+        term_param : tf.Variable,
+        U : tf.Tensor,
+        partials : List[List[tf.Tensor]]):
+
+        if term.u_order == 0:
+            u_n = 1.0
+        else:
+            u_n = (U[:,0])**term.u_order
+
+        if term.du_order == 0:
+            return term_param * u_n
+        else:
+            return term_param * u_n * \
+                    partials[term.du_order-1][term.du_component]
+
+    def __get_partial_derivatives(self,max_order,U,X) -> List[List[tf.Tensor]]:
+
+        if max_order == 0:
+            return []
+
+        du_1 = tf.gradients(U,X)[0]
+        du_Xi = [du_1[:,i] for i in range(du_1.shape[1])]
+        partial_derivatives = [du_Xi]
+        for d in range(1,max_order):
+            du = partial_derivatives[d-1]
+            partials = []
+            for i in range(X.shape[1]):
+                du_dXi = tf.gradients(du[i],X)[0]
+                partials.append(du_dXi[:,i])
+            partial_derivatives.append(partials)
+    
+        return partial_derivatives
