@@ -22,6 +22,10 @@ class PINN:
 
         self._build_net()
 
+    def __del__(self):
+        del self.graph
+        self.sess.close()
+
     def _build_net(self):
         self.graph = tf.Graph()
 
