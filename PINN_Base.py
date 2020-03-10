@@ -148,9 +148,11 @@ class ScalarDifferentialTerm:
         max_du_order : int) -> List:
         
         combinations = []
-        for du_order in range(max_du_order):
-            for u_order in range(max_u_order):
-                if du_order == 0: #No order for just u**n since its a scalar
+        for du_order in range(max_du_order+1):
+            for u_order in range(max_u_order+1):
+                if u_order == 0 and du_order == 0:
+                    continue
+                elif du_order == 0: #No order for just u**n since its a scalar
                     combinations.append(ScalarDifferentialTerm(u_order,du_order,0))
                 else:
                     for component in range(n_components):
@@ -254,3 +256,6 @@ class Scalar_PDE(PINN):
             partial_derivatives.append(partials)
     
         return partial_derivatives
+
+    def get_params(self):
+        return self.sess.run(self.differential_params)

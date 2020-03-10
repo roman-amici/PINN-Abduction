@@ -85,3 +85,7 @@ def subset_data(X,U,n):
 
 def rmse(U,U_hat):
     return np.sqrt(np.mean( (U_hat[:,0] - U[:,0])**2))
+
+def percent_noise(U,noise_percent=0.1):
+  std = np.std(U[:,0])*noise_percent
+  return U + np.random.normal(0,std,size=U.shape)
