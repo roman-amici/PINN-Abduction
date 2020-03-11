@@ -38,7 +38,8 @@ def bayes_opt_validation(
         best_error = -np.min(errors)
 
         #clean up the model
-        del model
+        model.cleanup()
+        tf.reset_default_graph()
 
         return best_error
 
@@ -49,7 +50,7 @@ def bayes_opt_validation(
     )
 
     #Some heuristics here...
-    optimizer.maximize(init_points=init_points,n_iter=n_iter, alpha=5e-2)
+    optimizer.maximize(init_points=init_points,n_iter=n_iter, alpha=alpha)
 
     return optimizer
 

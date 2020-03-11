@@ -22,39 +22,35 @@ class PINN:
 
         self._build_net()
 
-    def __del__(self):
-        del self.graph
+    def cleanup(self):
         self.sess.close()
+        self.sess = None
 
     def _build_net(self):
-        self.graph = tf.Graph()
 
-        with self.graph.as_default():
-            self._init_variables()
+        self._init_variables()
 
-            self._init_placeholders()
+        self._init_placeholders()
 
-            self.U_hat = self.__NN(self.X)
-            self.loss_U = self._get_loss(self.U,self.U_hat)
-            self.loss_dU = self._get_loss_du()
+        self.U_hat = self.__NN(self.X)
+        self.loss_U = self._get_loss(self.U,self.U_hat)
+        self.loss_dU = self._get_loss_du()
 
-            self.loss = self.loss_U + self.regularization_param * self.loss_dU
+        self.loss = self.loss_U + self.regularization_param * self.loss_dU
 
-            self.optimizer_BFGS = ScipyOptimizerInterface(
-                self.loss,
-                method = 'L-BFGS-B', 
-                options = {'maxiter': 50000,
-                            'maxfun': 50000,
-                            'maxcor': 50,
-                            'maxls': 50,
-                            'ftol' : 1.0 * np.finfo(float).eps,
-                            'gtol' : 1.0 * np.finfo(float).eps})
-            
-            init = tf.global_variables_initializer()
+        self.optimizer_BFGS = ScipyOptimizerInterface(
+            self.loss,
+            method = 'L-BFGS-B', 
+            options = {'maxiter': 50000,
+                        'maxfun': 50000,
+                        'maxcor': 50,
+                        'maxls': 50,
+                        'ftol' : 1.0 * np.finfo(float).eps,
+                        'gtol' : 1.0 * np.finfo(float).eps})
+        
+        init = tf.global_variables_initializer()
 
-        self.sess = tf.Session(
-            graph=self.graph, 
-            config=tf.ConfigProto(allow_soft_placement=True))
+        self.sess = tf.Session()
 
         self.sess.run(init)
 

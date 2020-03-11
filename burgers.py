@@ -55,7 +55,7 @@ optimizer = term_search.bayes_opt_validation(
     burgers_model, 
     term_library,
     X_train,U_train,
-    X_eval, U_eval,1)
+    X_eval, U_eval,1,5,25)
 
 term_vector = optimizer.max["params"]
 
