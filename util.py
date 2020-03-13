@@ -27,55 +27,6 @@ def to_grid_scalar(X,U,n_0,n_1):
 
     return u_grid,grid_0,grid_1
 
-def load_burgers(path="data/mat-data/burgers_shock.mat"):
-
-    data = loadmat(path)
-
-    t = data['t']
-    x = data['x']
-    u = np.real(data['usol'])
-
-    return t,x,u
-
-def flatten_burgers(t,x,u):
-  n_x = x.shape[0]
-  n_t = t.shape[0]
-  X = np.zeros((n_x*n_t, 2))
-  U = np.zeros((n_x*n_t,1))
-  for x_i in range(x.shape[0]):
-    for t_i in range(t.shape[0]):
-      idx = x_i*n_t + t_i
-      X[idx,0] = x[x_i]
-      X[idx,1] = t[t_i]
-      U[idx,0] = u[x_i,t_i]
-
-  return X,U
-
-def load_kdv(path="data/mat-data/KdV.mat"):
-    data = loadmat(path)
-
-    t = data['tt']
-    x = data['x']
-    u = np.real(data['uu'])
-
-    return t,x,u
-
-def flatten_kdv(t,x,u):
-    n_x = x.shape[0]
-    n_t = t.shape[0]
-
-    X = np.zeros((n_x*n_t, 2))
-    U = np.zeros((n_x*n_t,1))
-
-    for x_i in range(x.shape[0]):
-        for t_i in range(t.shape[0]):
-            idx = x_i*n_t + t_i
-            X[idx,0] = x[x_i]
-            X[idx,1] = t[t_i]
-            U[idx,0] = u[x_i,t_i]
-
-    return X,U
-
 def subset_data(X,U,n):
     idx = np.random.choice(X.shape[0], n, replace=False)
     X_sub = X[idx,:]
@@ -89,3 +40,9 @@ def rmse(U,U_hat):
 def percent_noise(U,noise_percent=0.1):
   std = np.std(U[:,0])*noise_percent
   return U + np.random.normal(0,std,size=U.shape)
+
+def print_scalar_terms(scalar_terms):
+    s = ""
+    for term in scalar_terms:
+        s += term.__repr__() + " + "
+    print(s)

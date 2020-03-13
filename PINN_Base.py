@@ -112,11 +112,15 @@ class ScalarDifferentialTerm:
     def __init__(self, 
         u_order : int, 
         du_order : int,
-        du_component : int):
+        du_component : int,
+        param=1.0):
+        #Param will be the default value if parameters are infered,
+        #and the only value if parameters are not infered.
 
         self.u_order = u_order
         self.du_order = du_order
         self.du_component = du_component
+        self.param = param
 
         if du_order == 0 and du_component != 0:
             raise Exception("Invalid value du_component when u_order is du_order is 0")
@@ -124,6 +128,11 @@ class ScalarDifferentialTerm:
     def __repr__(self):
 
         convention = ["x", "t"]
+
+        if self.param == 1:
+            p_str = ""
+        else:
+            p_str = str(self.param)
 
         if self.u_order == 0:
             u_str = ""
@@ -182,9 +191,13 @@ class Scalar_PDE(PINN):
         lower_bound : np.array,
         upper_bound : np.array,
         dtype = tf.float32,
-        regularization_param=1):
+        regularization_param=1,
+        infer_params=True,
+        forcing_function=None):
 
         self.differential_terms = differential_terms
+        self.forcing_function = forcing_function
+        self.infer_params=infer_params
 
         self.max_differential_order = 0
         for term in differential_terms:
@@ -196,9 +209,13 @@ class Scalar_PDE(PINN):
         super()._init_variables()
     
         self.differential_params = []
-        # By convention, we leave the first param off
-        for _ in range(len(self.differential_terms)-1): 
-            param = tf.Variable(tf.random.normal( [1] ), dtype=self.dtype)
+        for i,term in enumerate(self.differential_terms):
+            if i == 0 or not self.infer_params:
+                #The only have n-1 linearly independent parameters, by convention we simply fix the first one
+                param = tf.constant( term.param, dtype=self.dtype)
+            else:
+                param = tf.Variable( term.param, dtype=self.dtype)
+
             self.differential_params.append(param)
 
     def _get_loss_du(self):
@@ -208,17 +225,16 @@ class Scalar_PDE(PINN):
 
         loss = 0.0
         for i,term in enumerate(self.differential_terms):
-            if i == 0:
-                param = 1.0
-            else:
-                param = self.differential_params[i-1]
 
             tensor = self.__term_to_tensor(
                 term, 
-                param, 
+                self.differential_params[i], 
                 self.U_hat, 
                 partials)
             loss += tensor
+
+        if self.forcing_function:
+            loss += -self.forcing_function(self.X)
 
         return tf.reduce_mean( tf.square(loss))
 

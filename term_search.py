@@ -66,7 +66,8 @@ def grid_search_validation(
 
     random_choice = (np.random.random(size=(len(term_library)) ) > 0.5)
 
-    trials = []
+    trial_term = []
+    trial_error = []
     for _ in range(n_trials):
 
         terms = []
@@ -86,4 +87,10 @@ def grid_search_validation(
 
         #Minimize error by maximizing negative error
         best_error = np.min(errors)
+
+        trial_term.append(terms)
+        trial_error.append(best_error)
+
+    return trial_error,trial_term
+    
 

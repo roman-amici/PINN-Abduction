@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import util
 from PINN_Base import ScalarDifferentialTerm, Scalar_PDE
 import term_search
+import data_load
+
+import argparse
 
 def train_burgers(X_train,U_train,layers,differential_terms) -> Scalar_PDE:
     lower_bound = np.array([-1,0]) #x,t
@@ -24,7 +27,7 @@ def evaluate_burgers(X_eval,U_eval,model : Scalar_PDE):
 
     return util.rmse(U_eval,U_hat)
 
-def burgers_model(terms):
+def burgers_model(terms,infer_params=False):
     lower_bound = np.array([-1,0]) #x,t
     upper_bound = np.array([1,1])
 
@@ -35,44 +38,86 @@ def burgers_model(terms):
         layers, 
         lower_bound,
         upper_bound,
-        regularization_param=1)    
+        regularization_param=1,
+        infer_params=infer_params)
 
-t,x,u = util.load_burgers()
-nt = t.shape[1]
-nx = x.shape[1]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Bayesian Optimization using solutions to the burgers equation.")
+    parser.add_argument('--ntrain', type=int, help="Number of training points", default=1000)
+    parser.add_argument("--neval", type=int, help="Number of evaluation poitns", default=1000)
+    parser.add_argument("--nreps", type=int, help="Number of repetiions of each term for Bayesian Optimization for variance stabalization", default=1)
+    parser.add_argument("--niter", type=int, help="Number of iterations of Bayesian Optimization", default=25)
+    parser.add_argument("--ninit", type=int, help="Number of exploration iterations in Bayesian Optimization", default=3)
+    parser.add_argument("--noise", type=float, help="Noise level (as a percentage of the data's std) to modify the data for", default=0.1)
+    parser.add_argument("--alpha", type=float, help="Uncertainty in loss function for Bayesian Optimization", default=1e-2)
+    parser.add_argument("--infer_params", action="store_true", help="Whether to infer the parameters for each differential operator. If not, the true values will be used")
+    parser.add_argument("--mode", choices=["linear","nonlinear"], help="Combinatorial scheme for the dictionary", default="nonlinear")
+    parser.add_argument("--duorder", type=int, help="Highest derivative order to add to the term dictionary", default=2)
+    parser.add_argument("--uorder", type=int, help="Highest u order to add to the term dictionary (non-linear)",  default=1)
 
-X,U = util.flatten_burgers(t,x,u)
-X_train,U_train = util.subset_data(X,U,1000)
-U_train = util.percent_noise(U_train,0.1)#noise 10% of variation in the data
+    args = parser.parse_args()
+    n_train = args.ntrain
+    n_eval = args.neval
+    reps = args.nreps
+    n_iter = args.niter
+    n_init = args.ninit
+    data_noise = args.noise
+    bayes_alpha = args.alpha
+    infer_params = args.infer_params
+    mode = args.mode
+    du_order = args.duorder
+    u_order = args.uorder
 
-X_eval,U_eval = util.subset_data(X,U,1000)
-U_eval = util.percent_noise(U_eval,0.1)
+    t,x,u = data_load.load_burgers()
+    nt = t.shape[1]
+    nx = x.shape[1]
 
-#Up to second order in u and nonlinear (like u^2)
-#term_library = ScalarDifferentialTerm.get_combinations_scalar(2,1,2)
-term_library = ScalarDifferentialTerm.get_linear_combinations_scalar(2,5)
+    X,U = data_load.flatten_burgers(t,x,u)
+    X_train,U_train = util.subset_data(X,U,n_train)
+    U_train = util.percent_noise(U_train,data_noise)#noise 10% of variation in the data
 
-optimizer = term_search.bayes_opt_validation(
-    burgers_model, 
-    term_library,
-    X_train,U_train,
-    X_eval, U_eval,1,5,25)
+    X_eval,U_eval = util.subset_data(X,U,n_eval)
+    U_eval = util.percent_noise(U_eval,data_noise)
 
-term_vector = optimizer.max["params"]
+    if mode == "linear":
+        term_library = ScalarDifferentialTerm.get_linear_combinations_scalar(2,du_order)
+    else:
+        term_library = ScalarDifferentialTerm.get_combinations_scalar(2,u_order,du_order)
 
-best_terms = []
-for idx,val in term_vector.items():
-    if val > 0.5:
-        best_terms.append(term_library[int(idx)])
+    #Add the true parameter value into the library, just to see if it can find it.
+    if not infer_params:
+        for term in term_library:
+            if term.u_order == 0 and term.du_order == 2 and term.du_component == 0:
+                new_term = ScalarDifferentialTerm(0,2,0, -.01 / np.pi)
+                break
+        term_library.append(new_term)
 
-s = ""
-for term in best_terms:
-    s += term.__repr__() + " + "
-print(s)
+    def burgers_model_t(terms):
+        return burgers_model(terms,infer_params)
 
-model = burgers_model(best_terms)
-model.train_BFGS(X_train,U_train)
+    optimizer = term_search.bayes_opt_validation(
+        burgers_model_t, 
+        term_library,
+        X_train,U_train,
+        X_eval ,U_eval,
+        reps,
+        n_init,
+        n_iter,
+        bayes_alpha)
 
-print("Best Error:", evaluate_burgers(X,U,model))
-print("Params:")
-print(model.get_params())
+    term_vector = optimizer.max["params"]
+
+    best_terms = []
+    for idx,val in term_vector.items():
+        if val > 0.5:
+            best_terms.append(term_library[int(idx)])
+
+    util.print_scalar_terms(best_terms)
+
+    model = burgers_model(best_terms)
+    model.train_BFGS(X_train,U_train)
+
+    print("Best Error:", evaluate_burgers(X,U,model))
+    print("Params:")
+    print(model.get_params())
+
