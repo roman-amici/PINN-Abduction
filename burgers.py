@@ -49,7 +49,8 @@ X_eval,U_eval = util.subset_data(X,U,1000)
 U_eval = util.percent_noise(U_eval,0.1)
 
 #Up to second order in u and nonlinear (like u^2)
-term_library = ScalarDifferentialTerm.get_combinations_scalar(2,1,2)
+#term_library = ScalarDifferentialTerm.get_combinations_scalar(2,1,2)
+term_library = ScalarDifferentialTerm.get_linear_combinations_scalar(2,5)
 
 optimizer = term_search.bayes_opt_validation(
     burgers_model, 
