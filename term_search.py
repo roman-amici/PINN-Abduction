@@ -1,8 +1,10 @@
 from bayes_opt import BayesianOptimization
 from PINN_Base import Scalar_PDE, ScalarDifferentialTerm
-from util import rmse
+from util import rmse, print_scalar_terms
 import numpy as np
 import tensorflow as tf
+
+from itertools import combinations
 
 def bayes_opt_validation(
     model_function,
@@ -54,7 +56,7 @@ def bayes_opt_validation(
 
     return optimizer
 
-def grid_search_validation(
+def random_search_validation(
     model_function,
     term_library, 
     X_train,
@@ -64,11 +66,13 @@ def grid_search_validation(
     n_trials=12,
     reps=1):
 
-    random_choice = (np.random.random(size=(len(term_library)) ) > 0.5)
+    best_error = np.inf
 
     trial_term = []
     trial_error = []
-    for _ in range(n_trials):
+    for t in range(n_trials):
+
+        random_choice = (np.random.random(size=(len(term_library)) ) > 0.5)
 
         terms = []
         for i,b in enumerate(random_choice):
@@ -76,7 +80,6 @@ def grid_search_validation(
                 terms.append(term_library[i])
 
         errors = []
-
         for _ in range(reps):
             model = model_function(terms)
 
@@ -85,12 +88,53 @@ def grid_search_validation(
 
             errors.append( rmse(U_eval,U_hat) )
 
-        #Minimize error by maximizing negative error
-        best_error = np.min(errors)
+        best_rep_error = np.min(errors)
+
+        if best_rep_error < best_error:
+            best_error = best_rep_error
+            star = "*"
+
+        print(t)
+        print_scalar_terms(terms)
+        print(best_rep_error,star)
 
         trial_term.append(terms)
-        trial_error.append(best_error)
+        trial_error.append(best_rep_error)
+
+        tf.reset_default_graph()
+        model.cleanup()
 
     return trial_error,trial_term
     
+def grid_search_evaluation(
+    model_function,
+    term_library, 
+    X_train,
+    U_train,
+    X_eval,
+    U_eval):
 
+    #WARNING: Grows like 2**len(term_library)
+
+    t = 0
+
+    best = np.inf
+    best_terms = []
+    for r in range(1,len(term_library)):
+        for combo in combinations(r,term_library):
+            model = model_function(combo)
+            model.train_BFGS(X_train,U_train)
+
+            error = rmse(U_eval, model.predict(X_eval))
+            star = ""
+            if error < best:
+                best = error
+                best_terms = combo
+                star = "*"
+
+            print(t)
+            print_scalar_terms(combo)
+            print(error,star)
+            t += 1
+
+    return best_terms

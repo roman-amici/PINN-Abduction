@@ -24,7 +24,8 @@ class PINN:
 
     def cleanup(self):
         self.sess.close()
-        self.sess = None
+
+        del self.sess
 
     def _build_net(self):
 
@@ -53,6 +54,7 @@ class PINN:
         self.sess = tf.Session()
 
         self.sess.run(init)
+        self.sess.graph.finalize()
 
     def _init_variables(self):
         self.weights,self.biases = self.__init_NN(self.layers)
