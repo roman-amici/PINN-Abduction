@@ -42,18 +42,18 @@ def burgers_model(terms,infer_params=False):
         infer_params=infer_params)
 
 def run_burgers(
-    n_train,
-    n_eval,
-    reps,
-    n_iter,
-    n_init,
-    data_noise,
-    bayes_alpah,
-    infer_params,
-    mode,
-    du_order,
-    u_order,
-    search):
+    n_train=1000,
+    n_eval=1000,
+    reps=1,
+    n_iter=20,
+    n_init=5,
+    data_noise=0.1,
+    bayes_alpha=1e-2,
+    infer_params=True,
+    mode="nonlinear",
+    du_order=2,
+    u_order=1,
+    search="bayes"):
 
     t,x,u = data_load.load_burgers()
 
