@@ -18,7 +18,9 @@ def bayes_opt_validation(
         init_points=3,
         n_iter=8,
         alpha=5e-2,
-        acq="ucb"):
+        acq="ucb",
+        kappa=2.765,
+        xi=0.0):
 
     def evaluation_function(**kwargs):
 
@@ -54,7 +56,11 @@ def bayes_opt_validation(
 
     # Some heuristics here...
     optimizer.maximize(init_points=init_points,
-                       n_iter=n_iter, alpha=alpha, acq=acq)
+                       n_iter=n_iter,
+                       acq=acq,
+                       kappa=kappa,
+                       xi=xi,
+                       alpha=alpha)
 
     return optimizer
 

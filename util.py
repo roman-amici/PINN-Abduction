@@ -108,9 +108,9 @@ def log_optimizer_run(filepath, id, optimizer):
 
 def log_trial(filepath, **kwargs):
     columns = ["PDE", "search_method",
-               "n_train", "n_test", "data_noise", "infer_params",
-               "best_solution", "solution_correct", "correct_solution_checked",
-               "dictionary_extent", "kernel", "acquisition_function", "alpha",
+               "n_train", "n_eval", "data_noise", "infer_params",
+               "best_solution", "solution_correct", "correct_solution_searched",
+               "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
                "eval_error", "test_error"]
 
     if not exists(filepath):

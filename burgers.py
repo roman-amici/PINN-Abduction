@@ -65,6 +65,8 @@ def run_burgers(
         du_order=2,
         u_order=1,
         search="bayes",
+        kappa=2.576,
+        xi=0.0,
         log_file="",
         acquisition_function="ucb"):
 
@@ -106,7 +108,9 @@ def run_burgers(
             n_init,
             n_iter,
             bayes_alpha,
-            acquisition_function)
+            acquisition_function,
+            kappa,
+            xi)
 
         best_terms = util.term_vecotr_to_sdt(
             optimizer.max["params"], term_library)
@@ -139,6 +143,8 @@ def run_burgers(
                     u_order, du_order),
                 kernel="matern-2.5",
                 acquisition_function=acquisition_function,
+                kappa=kappa,
+                xi=xi,
                 eval_error=eval_error,
                 test_error=test_error
             )
@@ -196,6 +202,10 @@ if __name__ == "__main__":
                         help="Path to the file to log each trial in")
     parser.add_argument("--acq", choices=["ucb", "ei", "poi"], default="ucb",
                         help="Acquisition function for Bayesian Optimization")
+    parser.add_argument("--kappa", type=float, default=2.576,
+                        help="Exploration parameter")
+    parser.add_argument("--xi", type=float, default=0.0,
+                        help="Exploitation Parameter")
 
     args = parser.parse_args()
     n_train = args.ntrain
@@ -212,19 +222,23 @@ if __name__ == "__main__":
     search = args.search
     logfile = args.logfile
     acq = args.acq
+    kappa = args.kappa
+    xi = args.xi
 
     run_burgers(
-        n_train,
-        n_eval,
-        reps,
-        n_iter,
-        n_init,
-        data_noise,
-        bayes_alpha,
-        infer_params,
-        mode,
-        du_order,
-        u_order,
-        search,
-        logfile,
-        acq)
+        n_train=n_train,
+        n_eval=n_eval,
+        reps=reps,
+        n_iter=n_iter,
+        n_init=n_init,
+        data_noise=data_noise,
+        bayes_alpha=bayes_alpha,
+        infer_params=infer_params,
+        mode=mode,
+        du_order=du_order,
+        u_order=u_order,
+        search=search,
+        logfile=logfile,
+        acq=acq,
+        kappa=kappa,
+        xi=xi)
