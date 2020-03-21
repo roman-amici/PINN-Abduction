@@ -143,6 +143,8 @@ def run_burgers(
                 test_error=test_error
             )
 
+            return optimizer
+
     elif search == "random":
         errors, terms = term_search.random_search_validation(
             burgers_model_t,
