@@ -4,8 +4,15 @@ import util
 from PINN_Base import ScalarDifferentialTerm, Scalar_PDE
 import term_search
 import data_load
+import tensorflow as tf
 
 import argparse
+
+burgers_true = [
+    ScalarDifferentialTerm(0, 1, 1),  # u_t
+    ScalarDifferentialTerm(1, 1, 0),  # u_x
+    ScalarDifferentialTerm(0, 2, 0, -.01 / np.pi),  # u_xx
+]
 
 
 def train_burgers(X_train, U_train, layers, differential_terms) -> Scalar_PDE:
@@ -57,7 +64,9 @@ def run_burgers(
         mode="nonlinear",
         du_order=2,
         u_order=1,
-        search="bayes"):
+        search="bayes",
+        log_file="",
+        acquisition_function="ucb"):
 
     t, x, u = data_load.load_burgers()
 
@@ -96,14 +105,43 @@ def run_burgers(
             reps,
             n_init,
             n_iter,
-            bayes_alpha)
+            bayes_alpha,
+            acquisition_function)
 
-        term_vector = optimizer.max["params"]
+        best_terms = util.term_vecotr_to_sdt(
+            optimizer.max["params"], term_library)
 
-        best_terms = []
-        for idx, val in term_vector.items():
-            if val > 0.5:
-                best_terms.append(term_library[int(idx)])
+        eval_error = optimizer.max["target"]
+        solution_correct = util.compare_term_lists(burgers_true, best_terms)
+        correct_solution_searched = util.correct_solution_searched(
+            burgers_true, optimizer, term_library)
+
+        tf.reset_default_graph()
+        model = burgers_model(best_terms, infer_params)
+        model.train_BFGS(X_train, U_train)
+
+        test_error = evaluate_burgers(X, U, model)
+
+        if log_file:
+            util.log_trial(
+                log_file,
+                PDE="Burgers",
+                search_method=search,
+                n_train=n_train,
+                n_eval=n_eval,
+                data_noise=data_noise,
+                infer_params=infer_params,
+                best_solution=util.print_scalar_terms(best_terms),
+                solution_correct=solution_correct,
+                correct_solution_searched=correct_solution_searched,
+                alpha=bayes_alpha,
+                dictionary_extent=util.term_dict_extent(
+                    u_order, du_order),
+                kernel="matern-2.5",
+                acquisition_function=acquisition_function,
+                eval_error=eval_error,
+                test_error=test_error
+            )
 
     elif search == "random":
         errors, terms = term_search.random_search_validation(
@@ -123,15 +161,6 @@ def run_burgers(
             term_library,
             X_train, U_train,
             X_eval, U_eval)
-
-    util.print_scalar_terms(best_terms)
-
-    model = burgers_model(best_terms, infer_params)
-    model.train_BFGS(X_train, U_train)
-
-    print("Best Error:", evaluate_burgers(X, U, model))
-    print("Params:")
-    print(model.get_params())
 
 
 if __name__ == "__main__":
@@ -161,6 +190,10 @@ if __name__ == "__main__":
         "--uorder", type=int, help="Highest u order to add to the term dictionary (non-linear)",  default=1)
     parser.add_argument(
         "--search", choices=["bayes", "random", "grid"], default="bayes")
+    parser.add_argument("--logfile", type=str, default="",
+                        help="Path to the file to log each trial in")
+    parser.add_argument("--acq", choices=["ucb", "ei", "poi"], default="ucb",
+                        help="Acquisition function for Bayesian Optimization")
 
     args = parser.parse_args()
     n_train = args.ntrain
@@ -175,6 +208,8 @@ if __name__ == "__main__":
     du_order = args.duorder
     u_order = args.uorder
     search = args.search
+    logfile = args.logfile
+    acq = args.acq
 
     run_burgers(
         n_train,
@@ -188,4 +223,6 @@ if __name__ == "__main__":
         mode,
         du_order,
         u_order,
-        search)
+        search,
+        logfile,
+        acq)

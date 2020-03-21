@@ -6,17 +6,19 @@ import tensorflow as tf
 
 from itertools import combinations
 
+
 def bayes_opt_validation(
-    model_function,
-    term_library, 
-    X_train,
-    U_train,
-    X_eval,
-    U_eval,
-    reps=1,
-    init_points=3,
-    n_iter=8,
-    alpha=5e-2):
+        model_function,
+        term_library,
+        X_train,
+        U_train,
+        X_eval,
+        U_eval,
+        reps=1,
+        init_points=3,
+        n_iter=8,
+        alpha=5e-2,
+        acq="ucb"):
 
     def evaluation_function(**kwargs):
 
@@ -29,42 +31,43 @@ def bayes_opt_validation(
         errors = []
 
         for _ in range(reps):
+            tf.reset_default_graph()
             model = model_function(terms)
 
-            model.train_BFGS(X_train,U_train)
+            model.train_BFGS(X_train, U_train)
             U_hat = model.predict(X_eval)
 
-            errors.append( rmse(U_eval,U_hat) )
+            errors.append(rmse(U_eval, U_hat))
 
-        #Minimize error by maximizing negative error
+            model.cleanup()
+
+        # Minimize error by maximizing negative error
         best_error = -np.min(errors)
-
-        #clean up the model
-        model.cleanup()
-        tf.reset_default_graph()
 
         return best_error
 
-    bounds = { str(i) : (0,1) for i in range(len(term_library)) }
+    bounds = {str(i): (0, 1) for i in range(len(term_library))}
     optimizer = BayesianOptimization(
         evaluation_function,
-        bounds
+        bounds,
     )
 
-    #Some heuristics here...
-    optimizer.maximize(init_points=init_points,n_iter=n_iter, alpha=alpha)
+    # Some heuristics here...
+    optimizer.maximize(init_points=init_points,
+                       n_iter=n_iter, alpha=alpha, acq=acq)
 
     return optimizer
 
+
 def random_search_validation(
-    model_function,
-    term_library, 
-    X_train,
-    U_train,
-    X_eval,
-    U_eval,
-    n_trials=12,
-    reps=1):
+        model_function,
+        term_library,
+        X_train,
+        U_train,
+        X_eval,
+        U_eval,
+        n_trials=12,
+        reps=1):
 
     best_error = np.inf
 
@@ -72,10 +75,10 @@ def random_search_validation(
     trial_error = []
     for t in range(n_trials):
 
-        random_choice = (np.random.random(size=(len(term_library)) ) > 0.5)
+        random_choice = (np.random.random(size=(len(term_library))) > 0.5)
 
         terms = []
-        for i,b in enumerate(random_choice):
+        for i, b in enumerate(random_choice):
             if b:
                 terms.append(term_library[i])
 
@@ -83,10 +86,10 @@ def random_search_validation(
         for _ in range(reps):
             model = model_function(terms)
 
-            model.train_BFGS(X_train,U_train)
+            model.train_BFGS(X_train, U_train)
             U_hat = model.predict(X_eval)
 
-            errors.append( rmse(U_eval,U_hat) )
+            errors.append(rmse(U_eval, U_hat))
 
         best_rep_error = np.min(errors)
 
@@ -96,7 +99,7 @@ def random_search_validation(
 
         print(t)
         print_scalar_terms(terms)
-        print(best_rep_error,star)
+        print(best_rep_error, star)
 
         trial_term.append(terms)
         trial_error.append(best_rep_error)
@@ -104,26 +107,27 @@ def random_search_validation(
         tf.reset_default_graph()
         model.cleanup()
 
-    return trial_error,trial_term
-    
-def grid_search_evaluation(
-    model_function,
-    term_library, 
-    X_train,
-    U_train,
-    X_eval,
-    U_eval):
+    return trial_error, trial_term
 
-    #WARNING: Grows like 2**len(term_library)
+
+def grid_search_evaluation(
+        model_function,
+        term_library,
+        X_train,
+        U_train,
+        X_eval,
+        U_eval):
+
+    # WARNING: Grows like 2**len(term_library)
 
     t = 0
 
     best = np.inf
     best_terms = []
-    for r in range(1,len(term_library)):
-        for combo in combinations(r,term_library):
+    for r in range(1, len(term_library)):
+        for combo in combinations(r, term_library):
             model = model_function(combo)
-            model.train_BFGS(X_train,U_train)
+            model.train_BFGS(X_train, U_train)
 
             error = rmse(U_eval, model.predict(X_eval))
             star = ""
@@ -134,7 +138,7 @@ def grid_search_evaluation(
 
             print(t)
             print_scalar_terms(combo)
-            print(error,star)
+            print(error, star)
             t += 1
 
     return best_terms
