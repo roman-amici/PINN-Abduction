@@ -99,10 +99,10 @@ def correct_solution_searched(correct_terms, optimizer, term_library):
     return False
 
 
-def log_optimizer_run(filepath, id, optimizer):
+def log_optimizer_run(filepath, run_id, optimizer):
     search_list = optimizer.space.res()
 
-    with open(f"{filepath}/run_{id}.csv", "w+") as f:
+    with open(f"{filepath}/run_{run_id}.csv", "w+") as f:
 
         f.write("target,params\n")
 
@@ -116,7 +116,7 @@ def log_optimizer_run(filepath, id, optimizer):
 
 
 def log_trial(filepath, **kwargs):
-    columns = ["PDE", "search_method",
+    columns = ["run_id", "PDE", "search_method",
                "n_train", "n_eval", "data_noise", "infer_params",
                "best_solution", "solution_correct", "correct_solution_searched",
                "n_init", "n_iter", "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
