@@ -135,7 +135,7 @@ def run_burgers(
         if log_file:
             util.log_trial(
                 log_file,
-                id=int(run_id),
+                run_id=int(run_id),
                 PDE="Burgers",
                 search_method=search,
                 n_train=n_train,
