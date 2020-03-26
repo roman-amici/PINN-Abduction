@@ -5,6 +5,7 @@ from PINN_Base import ScalarDifferentialTerm, Scalar_PDE
 import term_search
 import data_load
 import tensorflow as tf
+from collections.abc import Iterable
 
 import argparse
 
@@ -84,8 +85,12 @@ def run_burgers(
         term_library = ScalarDifferentialTerm.get_linear_combinations_scalar(
             2, du_order)
     else:
-        term_library = ScalarDifferentialTerm.get_combinations_scalar(
-            2, u_order, du_order)
+        if isinstance(u_order, Iterable) and isinstance(du_order, Iterable):
+            term_library = ScalarDifferentialTerm.no_cross_combinations(
+                list(u_order), list(du_order))
+        else:
+            term_library = ScalarDifferentialTerm.get_combinations_scalar(
+                2, u_order, du_order)
 
     # Add the true parameter value into the library, just to see if it can find it.
     if not infer_params:
@@ -126,9 +131,11 @@ def run_burgers(
 
         test_error = evaluate_burgers(X, U, model)
 
+        run_id = np.random.randint(0, 2**63-1, dtype=np.int64)
         if log_file:
             util.log_trial(
                 log_file,
+                id=int(run_id),
                 PDE="Burgers",
                 search_method=search,
                 n_train=n_train,
@@ -139,6 +146,8 @@ def run_burgers(
                 solution_correct=solution_correct,
                 correct_solution_searched=correct_solution_searched,
                 alpha=bayes_alpha,
+                n_init=n_init,
+                n_iter=n_iter,
                 dictionary_extent=util.term_dict_extent(
                     u_order, du_order),
                 kernel="matern-2.5",
@@ -146,10 +155,10 @@ def run_burgers(
                 kappa=kappa,
                 xi=xi,
                 eval_error=eval_error,
-                test_error=test_error
+                test_error=test_error,
             )
 
-            return optimizer
+        return optimizer, run_id
 
     elif search == "random":
         errors, terms = term_search.random_search_validation(
@@ -238,7 +247,7 @@ if __name__ == "__main__":
         du_order=du_order,
         u_order=u_order,
         search=search,
-        logfile=logfile,
-        acq=acq,
+        log_file=logfile,
+        acquisition_function=acq,
         kappa=kappa,
         xi=xi)

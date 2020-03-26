@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.io import loadmat
 from os.path import exists
+from collections.abc import Iterable
 
 # Assumes equal spacing
 
@@ -65,7 +66,15 @@ def term_vecotr_to_sdt(term_vector, term_library):
 
 
 def term_dict_extent(max_u_order, max_du_order):
-    return f"u^{max_u_order} du_{max_du_order}"
+    convention = ["x", "t"]
+
+    if isinstance(max_u_order, Iterable) and isinstance(max_du_order, Iterable):
+        s = ""
+        for i, (u_order, du_order) in enumerate(zip(max_u_order, max_du_order)):
+            s += f"u^{u_order} du_{convention[i]}{du_order} + "
+        return s
+    else:
+        return f"u^{max_u_order} du_{max_du_order}"
 
 
 def compare_term_lists(tl1, tl2):
@@ -93,7 +102,7 @@ def correct_solution_searched(correct_terms, optimizer, term_library):
 def log_optimizer_run(filepath, id, optimizer):
     search_list = optimizer.space.res()
 
-    with open(f"{filepath}/run_id.csv", "w+") as f:
+    with open(f"{filepath}/run_{id}.csv", "w+") as f:
 
         f.write("target,params\n")
 
@@ -103,15 +112,20 @@ def log_optimizer_run(filepath, id, optimizer):
 
             params = ",".join([str(p) for p in params])
 
-            f.write(f"{target},params\n")
+            f.write(f"{target},{params}\n")
 
 
 def log_trial(filepath, **kwargs):
     columns = ["PDE", "search_method",
                "n_train", "n_eval", "data_noise", "infer_params",
                "best_solution", "solution_correct", "correct_solution_searched",
-               "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
+               "n_init", "n_iter", "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
                "eval_error", "test_error"]
+
+    c_set = set(columns)
+    for key in kwargs:
+        if key not in c_set:
+            print(f"WARNING: {key} not logged")
 
     if not exists(filepath):
         with open(filepath, "w+") as f:

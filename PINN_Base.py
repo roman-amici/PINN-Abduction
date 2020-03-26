@@ -184,6 +184,26 @@ class ScalarDifferentialTerm:
         return combinations
 
     @staticmethod
+    def no_cross_combinations(
+            max_u_order: List[int],
+            max_du_order: List[int]) -> List:
+
+        assert(len(max_u_order) == len(max_du_order))
+        n_components = len(max_u_order)
+
+        combinations = []
+        combinations.append(ScalarDifferentialTerm(1, 0, 0))
+
+        for component in range(n_components):
+            for u_order in range(max_u_order[component]):
+                for du_order in range(1, max_du_order[component]):
+                    combinations.append(
+                        ScalarDifferentialTerm(u_order, du_order, component)
+                    )
+
+        return combinations
+
+    @staticmethod
     def get_linear_combinations_scalar(
             n_components: int,
             max_du_order: int) -> List:
