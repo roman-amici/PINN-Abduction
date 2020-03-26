@@ -108,7 +108,7 @@ def log_optimizer_run(filepath, id, optimizer):
 
         for search_point in search_list:
             target = search_point["target"]
-            params = ["params"]
+            params = search_point["params"]
 
             params = ",".join([str(p) for p in params])
 
