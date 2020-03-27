@@ -11,7 +11,7 @@ import argparse
 
 burgers_true = [
     ScalarDifferentialTerm(0, 1, 1),  # u_t
-    ScalarDifferentialTerm(1, 1, 0),  # u_x
+    ScalarDifferentialTerm(1, 1, 0),  # u u_x
     ScalarDifferentialTerm(0, 2, 0, -.01 / np.pi),  # u_xx
 ]
 

@@ -81,10 +81,13 @@ def compare_term_lists(tl1, tl2):
     if len(tl1) != len(tl2):
         return False
     else:
-        for t1, t2 in zip(tl1, tl2):
-            if t1 != t2:
-                return False
-        return True
+        count = 0
+        for t1 in tl1:
+            for t2 in tl2:
+                if t1 == t2:
+                    count += 1
+                    break
+        return count == len(tl1)
 
 
 def correct_solution_searched(correct_terms, optimizer, term_library):
