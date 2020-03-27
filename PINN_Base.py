@@ -195,8 +195,8 @@ class ScalarDifferentialTerm:
         combinations.append(ScalarDifferentialTerm(1, 0, 0))
 
         for component in range(n_components):
-            for u_order in range(max_u_order[component]):
-                for du_order in range(1, max_du_order[component]):
+            for u_order in range(max_u_order[component]+1):
+                for du_order in range(1, max_du_order[component]+1):
                     combinations.append(
                         ScalarDifferentialTerm(u_order, du_order, component)
                     )
