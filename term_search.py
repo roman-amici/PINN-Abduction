@@ -1,3 +1,4 @@
+
 from bayes_opt import BayesianOptimization
 from PINN_Base import Scalar_PDE, ScalarDifferentialTerm
 from util import rmse, print_scalar_terms
@@ -5,6 +6,75 @@ import numpy as np
 import tensorflow as tf
 
 from itertools import combinations
+
+from smac.scenario.scenario import Scenario
+from smac.configspace import ConfigurationSpace
+from smac.facade.smac_hpo_facade import SMAC4HPO
+from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+
+
+def smac_validation(
+        model_function,
+        term_library,
+        X_train,
+        U_train,
+        X_eval,
+        U_eval,
+        n_iter):
+
+    def evaluation_function(params: dict, instance, budget, **kwargs):
+        terms = []
+
+        for idx, val in params.items():
+            if val > 0.5:
+                terms.append(term_library[int(idx)])
+
+        errors = []
+
+        tf.reset_default_graph()
+        model = model_function(terms)
+
+        model.train_BFGS(X_train, U_train)
+        U_hat = model.predict(X_eval)
+
+        errors.append(rmse(U_eval, U_hat))
+
+        model.cleanup()
+
+        # Minimize
+        best_error = np.min(errors)
+
+        return best_error
+
+    terms = []
+    for i in range(len(term_library)):
+        terms.append(
+            UniformIntegerHyperparameter(str(i), 0, 1,)
+        )
+
+    cs = ConfigurationSpace()
+    cs.add_hyperparameters(terms)
+
+    scenario = Scenario({
+        "run_obj": "quality",
+        "cs": cs,
+        "limit_resources": False,
+    })
+
+    smac = SMAC4HPO(
+        scenario=scenario,
+        tae_runner=evaluation_function
+    )
+
+    try:
+        incumbent = smac.optimize
+    finally:
+        incumbent = smac.solver.incumbent
+
+    result = smac.get_tae_runner().run(
+        config=incumbent, instance="1", budget=n_iter)
+
+    return result
 
 
 def bayes_opt_validation(

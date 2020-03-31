@@ -160,6 +160,17 @@ def run_burgers(
 
         return optimizer, run_id
 
+    elif search == "smac":
+        result = term_search.smac_validation(
+            burgers_model_t,
+            term_library,
+            X_train, U_train,
+            X_eval, U_eval,
+            n_iter
+        )
+
+        print("finished")
+
     elif search == "random":
         errors, terms = term_search.random_search_validation(
             burgers_model_t,
@@ -206,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--uorder", type=int, help="Highest u order to add to the term dictionary (non-linear)",  default=1)
     parser.add_argument(
-        "--search", choices=["bayes", "random", "grid"], default="bayes")
+        "--search", choices=["smac", "bayes", "random", "grid"], default="bayes")
     parser.add_argument("--logfile", type=str, default="",
                         help="Path to the file to log each trial in")
     parser.add_argument("--acq", choices=["ucb", "ei", "poi"], default="ucb",
