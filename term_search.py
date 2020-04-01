@@ -26,7 +26,7 @@ def smac_validation(
         terms = []
 
         for idx in range(len(term_library)):
-            if params[int(idx)] > 0.5:
+            if params[str(idx)] > 0.5:
                 terms.append(term_library[int(idx)])
 
         errors = []
