@@ -161,7 +161,7 @@ def run_burgers(
         return optimizer, run_id
 
     elif search == "smac":
-        result = term_search.smac_validation(
+        smac_result, incumbent = term_search.smac_validation(
             burgers_model_t,
             term_library,
             X_train, U_train,
@@ -169,7 +169,42 @@ def run_burgers(
             n_iter
         )
 
-        print("finished")
+        run_history = smac_result.get_runhistory()
+        eval_error = run_history.get_cost(incumbent)
+        best_terms = util.smac_config_to_sdt(incumbent, term_library)
+
+        solution_correct = util.compare_term_lists(burgers_true, best_terms)
+        correct_solution_searched = util.smac_correct_solution_searched(
+            burgers_true, run_history, term_library)
+
+        tf.reset_default_graph()
+        model = burgers_model(best_terms, infer_params)
+        model.train_BFGS(X_train, U_train)
+
+        test_error = evaluate_burgers(X, U, model)
+
+        run_id = np.random.randint(0, 2**63-1, dtype=np.int64)
+        if log_file:
+            util.log_trial(
+                log_file,
+                run_id=int(run_id),
+                PDE="Burgers",
+                search_method=search,
+                n_train=n_train,
+                n_eval=n_eval,
+                data_noise=data_noise,
+                infer_params=infer_params,
+                best_solution=util.print_scalar_terms(best_terms),
+                solution_correct=solution_correct,
+                correct_solution_searched=correct_solution_searched,
+                n_iter=n_iter,
+                dictionary_extent=util.term_dict_extent(
+                    u_order, du_order),
+                eval_error=eval_error,
+                test_error=test_error
+            )
+
+        return run_history, run_id
 
     elif search == "random":
         errors, terms = term_search.random_search_validation(

@@ -65,6 +65,25 @@ def term_vecotr_to_sdt(term_vector, term_library):
     return terms
 
 
+def smac_correct_solution_searched(correct_terms, run_history, term_library):
+
+    for config in run_history.get_all_configs():
+        sdt_list = smac_config_to_sdt(config, term_library)
+        if compare_term_lists(sdt_list, correct_terms):
+            return True
+
+    return False
+
+
+def smac_config_to_sdt(config, term_library):
+    terms = []
+    for i in range(len(term_library)):
+        if config[str(i)] > 0.5:
+            terms.append(term_library[i])
+
+    return terms
+
+
 def term_dict_extent(max_u_order, max_du_order):
     convention = ["x", "t"]
 

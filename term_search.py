@@ -67,9 +67,9 @@ def smac_validation(
         tae_runner=evaluation_function
     )
 
-    smac.optimize()
+    incumbent = smac.optimize()
 
-    return smac
+    return smac, incumbent
 
 
 def bayes_opt_validation(
