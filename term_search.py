@@ -25,8 +25,8 @@ def smac_validation(
     def evaluation_function(params: dict, instance, budget, **kwargs):
         terms = []
 
-        for idx, val in params.items():
-            if val > 0.5:
+        for idx in range(len(term_library)):
+            if params[int(idx)] > 0.5:
                 terms.append(term_library[int(idx)])
 
         errors = []
@@ -58,6 +58,7 @@ def smac_validation(
     scenario = Scenario({
         "run_obj": "quality",
         "cs": cs,
+        "runcount-limit": n_iter,
         "limit_resources": False,
     })
 
@@ -66,15 +67,9 @@ def smac_validation(
         tae_runner=evaluation_function
     )
 
-    try:
-        incumbent = smac.optimize
-    finally:
-        incumbent = smac.solver.incumbent
+    smac.optimize()
 
-    result = smac.get_tae_runner().run(
-        config=incumbent, instance="1", budget=n_iter)
-
-    return result
+    return smac
 
 
 def bayes_opt_validation(
