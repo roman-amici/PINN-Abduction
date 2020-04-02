@@ -60,6 +60,7 @@ def smac_validation(
         "cs": cs,
         "runcount-limit": n_iter,
         "limit_resources": False,
+        "deterministic": True,
     })
 
     smac = SMAC4HPO(
