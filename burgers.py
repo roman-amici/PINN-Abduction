@@ -94,11 +94,11 @@ def run_burgers(
 
     # Add the true parameter value into the library, just to see if it can find it.
     if not infer_params:
-        for term in term_library:
+        for i, term in enumerate(term_library):
             if term.u_order == 0 and term.du_order == 2 and term.du_component == 0:
                 new_term = ScalarDifferentialTerm(0, 2, 0, -.01 / np.pi)
+                term_library[i] = new_term
                 break
-        term_library.append(new_term)
 
     def burgers_model_t(terms):
         return burgers_model(terms, infer_params)
