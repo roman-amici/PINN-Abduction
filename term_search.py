@@ -12,6 +12,8 @@ from smac.configspace import ConfigurationSpace
 from smac.facade.smac_hpo_facade import SMAC4HPO
 from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
 
+import time
+
 
 def smac_validation(
         model_function,
@@ -31,11 +33,16 @@ def smac_validation(
 
         errors = []
 
+        t0 = time.time()
+
         tf.reset_default_graph()
         model = model_function(terms)
 
         model.train_BFGS(X_train, U_train)
         U_hat = model.predict(X_eval)
+
+        t1 = time.time()
+        print("Time", t1-t0)
 
         errors.append(rmse(U_eval, U_hat))
 
@@ -103,6 +110,7 @@ def bayes_opt_validation(
             model = model_function(terms)
 
             model.train_BFGS(X_train, U_train)
+
             U_hat = model.predict(X_eval)
 
             errors.append(rmse(U_eval, U_hat))
