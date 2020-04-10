@@ -33,16 +33,11 @@ def smac_validation(
 
         errors = []
 
-        t0 = time.time()
-
         tf.reset_default_graph()
         model = model_function(terms)
 
         model.train_BFGS(X_train, U_train)
         U_hat = model.predict(X_eval)
-
-        t1 = time.time()
-        print("Time", t1-t0)
 
         errors.append(rmse(U_eval, U_hat))
 
