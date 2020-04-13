@@ -7,10 +7,10 @@ import tensorflow as tf
 
 from itertools import combinations
 
-from smac.scenario.scenario import Scenario
-from smac.configspace import ConfigurationSpace
-from smac.facade.smac_hpo_facade import SMAC4HPO
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+# from smac.scenario.scenario import Scenario
+# from smac.configspace import ConfigurationSpace
+# from smac.facade.smac_hpo_facade import SMAC4HPO
+# from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
 
 import time
 
@@ -33,7 +33,6 @@ def smac_validation(
 
         errors = []
 
-        tf.reset_default_graph()
         model = model_function(terms)
 
         model.train_BFGS(X_train, U_train)
@@ -101,7 +100,6 @@ def bayes_opt_validation(
         errors = []
 
         for _ in range(reps):
-            tf.reset_default_graph()
             model = model_function(terms)
 
             model.train_BFGS(X_train, U_train)
@@ -179,7 +177,6 @@ def random_search_validation(
         trial_term.append(terms)
         trial_error.append(best_rep_error)
 
-        tf.reset_default_graph()
         model.cleanup()
 
     return trial_error, trial_term

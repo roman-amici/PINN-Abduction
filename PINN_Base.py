@@ -30,29 +30,31 @@ class PINN:
 
     def _build_net(self):
 
-        self._init_variables()
+        with tf.Graph().as_default() as g:
 
-        self._init_placeholders()
+            self._init_variables()
 
-        self.U_hat = self.__NN(self.X)
-        self.loss_U = self._get_loss(self.U, self.U_hat)
-        self.loss_dU = self._get_loss_du()
+            self._init_placeholders()
 
-        self.loss = self.loss_U + self.regularization_param * self.loss_dU
+            self.U_hat = self.__NN(self.X)
+            self.loss_U = self._get_loss(self.U, self.U_hat)
+            self.loss_dU = self._get_loss_du()
 
-        self.optimizer_BFGS = ScipyOptimizerInterface(
-            self.loss,
-            method='L-BFGS-B',
-            options={'maxiter': 50000,
-                     'maxfun': 50000,
-                     'maxcor': 50,
-                     'maxls': 50,
-                     'ftol': 1.0 * np.finfo(float).eps,
-                     'gtol': 1.0 * np.finfo(float).eps})
+            self.loss = self.loss_U + self.regularization_param * self.loss_dU
 
-        init = tf.global_variables_initializer()
+            self.optimizer_BFGS = ScipyOptimizerInterface(
+                self.loss,
+                method='L-BFGS-B',
+                options={'maxiter': 50000,
+                         'maxfun': 50000,
+                         'maxcor': 50,
+                         'maxls': 50,
+                         'ftol': 1.0 * np.finfo(float).eps,
+                         'gtol': 1.0 * np.finfo(float).eps})
 
-        self.sess = tf.Session()
+            init = tf.global_variables_initializer()
+
+            self.sess = tf.Session(graph=g)
 
         self.sess.run(init)
         self.sess.graph.finalize()
