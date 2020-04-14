@@ -7,10 +7,10 @@ import tensorflow as tf
 
 from itertools import combinations
 
-# from smac.scenario.scenario import Scenario
-# from smac.configspace import ConfigurationSpace
-# from smac.facade.smac_hpo_facade import SMAC4HPO
-# from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+from smac.scenario.scenario import Scenario
+from smac.configspace import ConfigurationSpace
+from smac.facade.smac_hpo_facade import SMAC4HPO
+from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
 
 import time
 
