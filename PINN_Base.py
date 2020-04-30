@@ -13,7 +13,7 @@ class PINN:
             lower_bound: np.array,
             upper_bound: np.array,
             dtype=tf.float32,
-            regularization_param=1):
+            regularization_param=1.0):
 
         self.layers = layers
         self.lower_bound = lower_bound
@@ -122,8 +122,8 @@ class ScalarDifferentialTerm:
                  du_order: int,
                  du_component: int,
                  param=1.0):
-        # Param will be the default value if parameters are infered,
-        # and the only value if parameters are not infered.
+        # Param will be the default value if parameters are inferred,
+        # and the only value if parameters are not inferred.
 
         self.u_order = u_order
         self.du_order = du_order

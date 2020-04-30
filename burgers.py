@@ -38,7 +38,7 @@ def evaluate_burgers(X_eval, U_eval, model: Scalar_PDE):
     return util.rmse(U_eval, U_hat)
 
 
-def burgers_model(terms, infer_params=False):
+def burgers_model(terms, regularization, infer_params=False):
     lower_bound = np.array([-1, 0])  # x,t
     upper_bound = np.array([1, 1])
 
@@ -49,7 +49,7 @@ def burgers_model(terms, infer_params=False):
         layers,
         lower_bound,
         upper_bound,
-        regularization_param=1,
+        regularization_param=regularization,
         infer_params=infer_params)
 
 
@@ -69,7 +69,8 @@ def run_burgers(
         kappa=2.576,
         xi=0.0,
         log_file="",
-        acquisition_function="ucb"):
+        acquisition_function="ucb",
+        use_regularization=False):
 
     t, x, u = data_load.load_burgers()
 
@@ -100,8 +101,8 @@ def run_burgers(
                 term_library[i] = new_term
                 break
 
-    def burgers_model_t(terms):
-        return burgers_model(terms, infer_params)
+    def burgers_model_t(terms,regularization=1.0):
+        return burgers_model(terms, regularization, infer_params)
 
     if search == "bayes":
         optimizer = term_search.bayes_opt_validation(
@@ -156,6 +157,7 @@ def run_burgers(
                 xi=xi,
                 eval_error=eval_error,
                 test_error=test_error,
+
             )
 
         return optimizer, run_id
@@ -166,7 +168,8 @@ def run_burgers(
             term_library,
             X_train, U_train,
             X_eval, U_eval,
-            n_iter
+            n_iter,
+            use_regularization
         )
 
         run_history = smac_result.get_runhistory()
@@ -201,7 +204,9 @@ def run_burgers(
                 dictionary_extent=util.term_dict_extent(
                     u_order, du_order),
                 eval_error=eval_error,
-                test_error=test_error
+                test_error=test_error,
+                regularization_search=use_regularization,
+                best_regularization=incumbent["reg"] if use_regularization else 1.0
             )
 
         return run_history, run_id
@@ -232,9 +237,9 @@ if __name__ == "__main__":
     parser.add_argument('--ntrain', type=int,
                         help="Number of training points", default=1000)
     parser.add_argument("--neval", type=int,
-                        help="Number of evaluation poitns", default=1000)
+                        help="Number of evaluation points", default=1000)
     parser.add_argument(
-        "--nreps", type=int, help="Number of repetiions of each term for Bayesian Optimization for variance stabalization", default=1)
+        "--nreps", type=int, help="Number of repetitions of each term for Bayesian Optimization for variance stabalization", default=1)
     parser.add_argument(
         "--niter", type=int, help="Number of iterations of Bayesian Optimization", default=25)
     parser.add_argument(
@@ -261,6 +266,7 @@ if __name__ == "__main__":
                         help="Exploration parameter")
     parser.add_argument("--xi", type=float, default=0.0,
                         help="Exploitation Parameter")
+    parser.add_argument("--reg_search", action="store_true", default=False)
 
     args = parser.parse_args()
     n_train = args.ntrain
@@ -279,6 +285,7 @@ if __name__ == "__main__":
     acq = args.acq
     kappa = args.kappa
     xi = args.xi
+    use_regularization = args.reg_search
 
     run_burgers(
         n_train=n_train,
@@ -296,4 +303,5 @@ if __name__ == "__main__":
         log_file=logfile,
         acquisition_function=acq,
         kappa=kappa,
-        xi=xi)
+        xi=xi,
+        use_regularization=use_regularization)

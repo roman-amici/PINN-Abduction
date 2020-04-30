@@ -142,7 +142,7 @@ def log_trial(filepath, **kwargs):
                "n_train", "n_eval", "data_noise", "infer_params",
                "best_solution", "solution_correct", "correct_solution_searched",
                "n_init", "n_iter", "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
-               "eval_error", "test_error"]
+               "eval_error", "test_error", "regularization_search", "best_regularization"]
 
     c_set = set(columns)
     for key in kwargs:

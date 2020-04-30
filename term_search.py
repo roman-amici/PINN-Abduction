@@ -10,7 +10,7 @@ from itertools import combinations
 from smac.scenario.scenario import Scenario
 from smac.configspace import ConfigurationSpace
 from smac.facade.smac_hpo_facade import SMAC4HPO
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
+from ConfigSpace.hyperparameters import UniformIntegerHyperparameter, UniformFloatHyperparameter
 
 import time
 
@@ -22,7 +22,9 @@ def smac_validation(
         U_train,
         X_eval,
         U_eval,
-        n_iter):
+        n_iter,
+        use_regularization,
+        ):
 
     def evaluation_function(params: dict, instance, budget, **kwargs):
         terms = []
@@ -31,9 +33,14 @@ def smac_validation(
             if params[str(idx)] > 0.5:
                 terms.append(term_library[int(idx)])
 
+        if use_regularization:
+            regularization = params["reg"]
+        else:
+            regularization = 1.0
+
         errors = []
 
-        model = model_function(terms)
+        model = model_function(terms,regularization)
 
         model.train_BFGS(X_train, U_train)
         U_hat = model.predict(X_eval)
@@ -55,6 +62,10 @@ def smac_validation(
 
     cs = ConfigurationSpace()
     cs.add_hyperparameters(terms)
+
+    if use_regularization:
+        cs.add_hyperparameter(UniformFloatHyperparameter("reg", 0,100, log=True))
+
 
     scenario = Scenario({
         "run_obj": "quality",
