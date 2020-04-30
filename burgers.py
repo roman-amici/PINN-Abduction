@@ -9,10 +9,12 @@ from collections.abc import Iterable
 
 import argparse
 
+NU = -.01 / np.pi
+
 burgers_true = [
     ScalarDifferentialTerm(0, 1, 1),  # u_t
     ScalarDifferentialTerm(1, 1, 0),  # u u_x
-    ScalarDifferentialTerm(0, 2, 0, -.01 / np.pi),  # u_xx
+    ScalarDifferentialTerm(0, 2, 0, NU),  # u_xx
 ]
 
 
@@ -70,7 +72,9 @@ def run_burgers(
         xi=0.0,
         log_file="",
         acquisition_function="ucb",
-        use_regularization=False):
+        use_regularization=False,
+        noisy_eval=True,
+        random_param_init=False):
 
     t, x, u = data_load.load_burgers()
 
@@ -80,7 +84,8 @@ def run_burgers(
     U_train = util.percent_noise(U_train, data_noise)
 
     X_eval, U_eval = util.subset_data(X, U, n_eval)
-    U_eval = util.percent_noise(U_eval, data_noise)
+    if noisy_eval:
+        U_eval = util.percent_noise(U_eval, data_noise)
 
     if mode == "linear":
         term_library = ScalarDifferentialTerm.get_linear_combinations_scalar(
@@ -97,9 +102,14 @@ def run_burgers(
     if not infer_params:
         for i, term in enumerate(term_library):
             if term.u_order == 0 and term.du_order == 2 and term.du_component == 0:
-                new_term = ScalarDifferentialTerm(0, 2, 0, -.01 / np.pi)
+                new_term = ScalarDifferentialTerm(0, 2, 0, NU)
                 term_library[i] = new_term
                 break
+    elif random_param_init:
+        for term in term_library:
+            term.param = np.random.randn()
+    
+
 
     def burgers_model_t(terms,regularization=1.0):
         return burgers_model(terms, regularization, infer_params)
@@ -206,7 +216,9 @@ def run_burgers(
                 eval_error=eval_error,
                 test_error=test_error,
                 regularization_search=use_regularization,
-                best_regularization=incumbent["reg"] if use_regularization else 1.0
+                best_regularization=incumbent["reg"] if use_regularization else 1.0,
+                noisy_eval=noisy_eval,
+                random_param_init=random_param_init,
             )
 
         return run_history, run_id

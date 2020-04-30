@@ -121,7 +121,7 @@ class ScalarDifferentialTerm:
                  u_order: int,
                  du_order: int,
                  du_component: int,
-                 param=1.0):
+                 param=0):
         # Param will be the default value if parameters are inferred,
         # and the only value if parameters are not inferred.
 
