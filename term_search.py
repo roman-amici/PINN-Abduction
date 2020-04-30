@@ -64,7 +64,7 @@ def smac_validation(
     cs.add_hyperparameters(terms)
 
     if use_regularization:
-        cs.add_hyperparameter(UniformFloatHyperparameter("reg", 0,100, log=True))
+        cs.add_hyperparameter(UniformFloatHyperparameter("reg", 1e-5,100, log=True))
 
 
     scenario = Scenario({
