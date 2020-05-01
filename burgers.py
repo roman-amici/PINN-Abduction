@@ -216,7 +216,7 @@ def run_burgers(
                 eval_error=eval_error,
                 test_error=test_error,
                 regularization_search=use_regularization,
-                best_regularization=
+                best_regularization=best_regularization,
                 noisy_eval=noisy_eval,
                 random_param_init=random_param_init,
             )
