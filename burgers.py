@@ -185,13 +185,13 @@ def run_burgers(
         run_history = smac_result.get_runhistory()
         eval_error = run_history.get_cost(incumbent)
         best_terms = util.smac_config_to_sdt(incumbent, term_library)
+        best_regularization = incumbent["reg"] if use_regularization else 1.0
 
         solution_correct = util.compare_term_lists(burgers_true, best_terms)
         correct_solution_searched = util.smac_correct_solution_searched(
             burgers_true, run_history, term_library)
 
-        tf.reset_default_graph()
-        model = burgers_model(best_terms, infer_params)
+        model = burgers_model(best_terms, best_regularization, infer_params)
         model.train_BFGS(X_train, U_train)
 
         test_error = evaluate_burgers(X, U, model)
@@ -216,7 +216,7 @@ def run_burgers(
                 eval_error=eval_error,
                 test_error=test_error,
                 regularization_search=use_regularization,
-                best_regularization=incumbent["reg"] if use_regularization else 1.0,
+                best_regularization=
                 noisy_eval=noisy_eval,
                 random_param_init=random_param_init,
             )
