@@ -250,7 +250,7 @@ class Scalar_PDE(PINN):
         for i, term in enumerate(self.differential_terms):
             if i == 0 or not self.infer_params:
                 # The only have n-1 linearly independent parameters, by convention we simply fix the first one
-                param = tf.constant(term.param, dtype=self.dtype)
+                param = tf.constant(1.0, dtype=self.dtype)
             else:
                 param = tf.Variable(term.param, dtype=self.dtype)
 
