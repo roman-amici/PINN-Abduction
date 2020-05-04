@@ -108,10 +108,12 @@ def run_burgers(
     elif random_param_init:
         for term in term_library:
             term.param = np.random.randn()
-    
+    elif infer_params:
+        for term in term_library:
+            # Default initialization of zero for inference only.
+            term.param = 0.0
 
-
-    def burgers_model_t(terms,regularization=1.0):
+    def burgers_model_t(terms, regularization=1.0):
         return burgers_model(terms, regularization, infer_params)
 
     if search == "bayes":
