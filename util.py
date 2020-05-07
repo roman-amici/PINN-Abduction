@@ -49,6 +49,14 @@ def percent_noise(U, noise_percent=0.1):
     return U + np.random.normal(0, std, size=U.shape)
 
 
+def print_scalar_terms_with_params(scalar_terms):
+    s = ""
+    for term in scalar_terms:
+        s += f"{term.param} * {term.__repr__()} +"
+
+    return s
+
+
 def print_scalar_terms(scalar_terms):
     s = ""
     for term in scalar_terms:
@@ -70,9 +78,9 @@ def smac_correct_solution_searched(correct_terms, run_history, term_library):
     for config in run_history.get_all_configs():
         sdt_list = smac_config_to_sdt(config, term_library)
         if compare_term_lists(sdt_list, correct_terms):
-            return True
+            return True, sdt_list
 
-    return False
+    return False, None
 
 
 def smac_config_to_sdt(config, term_library):
@@ -137,12 +145,27 @@ def log_optimizer_run(filepath, run_id, optimizer):
             f.write(f"{target},{params}\n")
 
 
+def log_run_smac(filepath, run_id, term_library, run_history):
+    with open(f"filepath/{run_id}.csv") as f:
+        f.write("error,solution,solution with params,reg\n")
+        for _, config in enumerate(run_history.get_all_configs()):
+            sdt_list = smac_config_to_sdt(config, term_library)
+            vals = [
+                str(run_history.get_cost(config)),
+                print_scalar_terms(sdt_list),
+                print_scalar_terms_with_params(sdt_list),
+                str(config["reg"]) if "reg" in config else str(1.0)
+            ]
+            f.write(",".join(vals) + "\n")
+
+
 def log_trial(filepath, **kwargs):
     columns = ["run_id", "PDE", "search_method",
                "n_train", "n_eval", "data_noise", "infer_params",
                "best_solution", "solution_correct", "correct_solution_searched",
                "n_init", "n_iter", "dictionary_extent", "kernel", "acquisition_function", "alpha", "kappa", "xi",
-               "eval_error", "test_error", "regularization_search", "best_regularization","noisy_eval", "random_param_init"]
+               "eval_error", "test_error", "regularization_search", "best_regularization", "noisy_eval", "random_param_init",
+               "best_solution_with_params", "searched_solution_with_params"]
 
     c_set = set(columns)
     for key in kwargs:

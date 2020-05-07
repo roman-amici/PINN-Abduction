@@ -71,6 +71,7 @@ def run_burgers(
         kappa=2.576,
         xi=0.0,
         log_file="",
+        run_log_directory="",
         acquisition_function="ucb",
         use_regularization=False,
         noisy_eval=True,
@@ -134,7 +135,8 @@ def run_burgers(
             optimizer.max["params"], term_library)
 
         eval_error = optimizer.max["target"]
-        solution_correct = util.compare_term_lists(burgers_true, best_terms)
+        solution_correct, searched_solution = util.compare_term_lists(
+            burgers_true, best_terms)
         correct_solution_searched = util.correct_solution_searched(
             burgers_true, optimizer, term_library)
 
@@ -143,7 +145,6 @@ def run_burgers(
         model.train_BFGS(X_train, U_train)
 
         test_error = evaluate_burgers(X, U, model)
-
         run_id = np.random.randint(0, 2**63-1, dtype=np.int64)
         if log_file:
             util.log_trial(
@@ -169,7 +170,6 @@ def run_burgers(
                 xi=xi,
                 eval_error=eval_error,
                 test_error=test_error,
-
             )
 
         return optimizer, run_id
@@ -190,7 +190,7 @@ def run_burgers(
         best_regularization = incumbent["reg"] if use_regularization else 1.0
 
         solution_correct = util.compare_term_lists(burgers_true, best_terms)
-        correct_solution_searched = util.smac_correct_solution_searched(
+        correct_solution_searched, searched_solution = util.smac_correct_solution_searched(
             burgers_true, run_history, term_library)
 
         model = burgers_model(best_terms, best_regularization, infer_params)
@@ -221,7 +221,15 @@ def run_burgers(
                 best_regularization=best_regularization,
                 noisy_eval=noisy_eval,
                 random_param_init=random_param_init,
+                best_solution_with_params=util.print_scalar_terms_with_params(
+                    best_terms),
+                searched_solution_with_params=util.print_scalar_terms_with_params(
+                    searched_solution) if searched_solution is not None else ""
             )
+
+        if run_log_directory:
+            util.log_run_smac(run_log_directory, run_id,
+                              term_library, run_history)
 
         return run_history, run_id
 
