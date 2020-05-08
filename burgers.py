@@ -288,7 +288,15 @@ if __name__ == "__main__":
                         help="Exploration parameter")
     parser.add_argument("--xi", type=float, default=0.0,
                         help="Exploitation Parameter")
-    parser.add_argument("--reg_search", action="store_true", default=False)
+    parser.add_argument("--reg_search", action="store_true",
+                        help="Perform search for regularization strength jointly with the terms. (SMAC only)", default=False)
+    parser.add_argument("--pristine_eval", action="store_true",
+                        help="Evaluate error function on an evaluation set without added noise")
+    parser.add_argument("--random_param_init", action="store_true",
+                        help="Randomly initialize parameters to the differential equation (otherwise initial values are zero)")
+    use_regularization = False,
+    noisy_eval = True,
+    random_param_init = False
 
     args = parser.parse_args()
     n_train = args.ntrain
@@ -308,6 +316,8 @@ if __name__ == "__main__":
     kappa = args.kappa
     xi = args.xi
     use_regularization = args.reg_search
+    noisy_eval = not args.pristine_eval
+    random_param_init = args.random_param_init
 
     run_burgers(
         n_train=n_train,
@@ -326,4 +336,6 @@ if __name__ == "__main__":
         acquisition_function=acq,
         kappa=kappa,
         xi=xi,
-        use_regularization=use_regularization)
+        use_regularization=use_regularization,
+        noisy_eval=noisy_eval,
+        random_param_init=random_param_init)

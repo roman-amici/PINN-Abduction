@@ -1,18 +1,25 @@
 
-from bayes_opt import BayesianOptimization
 from PINN_Base import Scalar_PDE, ScalarDifferentialTerm
 from util import rmse, print_scalar_terms
 import numpy as np
 import tensorflow as tf
-
 from itertools import combinations
 
-from smac.scenario.scenario import Scenario
-from smac.configspace import ConfigurationSpace
-from smac.facade.smac_hpo_facade import SMAC4HPO
-from ConfigSpace.hyperparameters import UniformIntegerHyperparameter, UniformFloatHyperparameter
+try:
+    from bayes_opt import BayesianOptimization
+except ImportError:
+    print("BayesianOptimization not installed")
+    print("Try pip install bayesian-optimization")
 
-import time
+try:
+    from smac.scenario.scenario import Scenario
+    from smac.configspace import ConfigurationSpace
+    from smac.facade.smac_hpo_facade import SMAC4HPO
+    from ConfigSpace.hyperparameters import UniformIntegerHyperparameter, UniformFloatHyperparameter
+except ImportError:
+    print("smac not installed")
+    print("With swig installed")
+    print("try pip install smac")
 
 
 def smac_validation(
@@ -24,7 +31,7 @@ def smac_validation(
         U_eval,
         n_iter,
         use_regularization,
-        ):
+):
 
     def evaluation_function(params: dict, instance, budget, **kwargs):
         terms = []
@@ -40,7 +47,7 @@ def smac_validation(
 
         errors = []
 
-        model = model_function(terms,regularization)
+        model = model_function(terms, regularization)
 
         model.train_BFGS(X_train, U_train)
         U_hat = model.predict(X_eval)
@@ -64,8 +71,8 @@ def smac_validation(
     cs.add_hyperparameters(terms)
 
     if use_regularization:
-        cs.add_hyperparameter(UniformFloatHyperparameter("reg", 1e-5,100, log=True))
-
+        cs.add_hyperparameter(
+            UniformFloatHyperparameter("reg", 1e-5, 100, log=True))
 
     scenario = Scenario({
         "run_obj": "quality",
